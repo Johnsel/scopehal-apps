@@ -74,16 +74,7 @@ jobs:
     - name: Test
       run: |
         pacman -U --noconfirm --verbose --debug msys2/*.zst
-        echo this is just a filler
-        ls -l /mingw64/bin/gl*
-        ls -l .
-        ls -l /
-        ls -l /c/
-        ls -l /mingw64/share/
-        ls -l /mingw64/
-        export
-        VK_LOADER_DEBUG=all glscopeclient
-        glscopeclient --help
+        VK_LOADER_DEBUG=all glscopeclient --stdout-only --verbose --help
         
 
     - name: Upload Artifacts

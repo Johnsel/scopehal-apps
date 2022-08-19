@@ -70,6 +70,8 @@ void help();
 
 void help()
 {
+	LogDebug("help 1\n");
+
 	fprintf(stderr,
 			"glscopeclient [general options] [logger options] [dev options] [filename|scope]\n"
 			"\n"
@@ -120,6 +122,7 @@ void Relaunch(int argc, char* argv[]);
 
 int main(int argc, char* argv[])
 {
+	LogDebug("main1\n");
 	//Global settings
 	Severity console_verbosity = Severity::NOTICE;
 
@@ -133,14 +136,20 @@ int main(int argc, char* argv[])
 	bool noavx512f = false;
 	for(int i=1; i<argc; i++)
 	{
+		LogDebug("forloop 1\n");
+
 		string s(argv[i]);
 
 		//Let the logger eat its args first
 		if(ParseLoggerArguments(i, argc, argv, console_verbosity))
 			continue;
 
+			LogDebug("forloop 2\n");
+
 		if(s == "--help")
 		{
+			LogDebug("help 1\n");
+
 			help();
 			return 0;
 		}
@@ -282,6 +291,8 @@ int main(int argc, char* argv[])
 #ifndef _WIN32
 void Relaunch(int argc, char* argv[])
 {
+		LogDebug("Relaunching\n");
+
 	//make a copy of arguments since argv[] does not have to be null terminated, but execvp requires that
 	vector<char*> args;
 	for(int i=0; i<argc; i++)
@@ -314,6 +325,8 @@ double GetTime()
 
 void ScopeThread(Oscilloscope* scope)
 {
+		LogDebug("ScopeThread()\n");
+
 	pthread_setname_np_compat("ScopeThread");
 
 	auto sscope = dynamic_cast<SCPIOscilloscope*>(scope);
