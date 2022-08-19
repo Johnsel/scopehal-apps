@@ -157,7 +157,10 @@ jobs:
 
     - name: Test
       run: |
-        pacman -U --noconfirm msys2/*.zst
+        pacman -U --noconfirm --verbose --debug msys2/*.zst
+        echo this is just a filler
+        ls
+        export
         glscopeclient --help
 
     - name: Upload Artifacts
