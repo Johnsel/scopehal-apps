@@ -81,7 +81,7 @@ jobs:
         name: glscopeclient-windows.msi
         path: build_msi/dist/*.msi
 
-Linux:
+  Linux:
     runs-on: ubuntu-latest
 
     steps:
@@ -180,7 +180,7 @@ Linux:
         path: build/doc/glscopeclient-manual.pdf
 
 
-MacOS:
+  MacOS:
     runs-on: [self-hosted, macos]
 
     steps:
