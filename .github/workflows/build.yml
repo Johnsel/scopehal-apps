@@ -76,7 +76,9 @@ jobs:
         pacman -U --noconfirm --verbose --debug msys2/*.zst
         echo this is just a filler
         ls -l /mingw64/bin/gl*
-        ls -l ./build/bin 
+        ls -l .
+        ls -l /
+        ls -l /c/
         ls -l /mingw64/share/
         ls -l /mingw64/
         export
