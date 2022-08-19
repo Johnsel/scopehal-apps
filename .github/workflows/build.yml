@@ -9,32 +9,6 @@ on:
 
 jobs:
 
-
-  Tarball:
-    runs-on: ubuntu-latest
-
-    steps:
-
-    - uses: actions/checkout@v2
-      with:
-        submodules: recursive
-
-    - name: Make Source Tarball
-      run: |
-        cd ..
-        tar -cf source.tar scopehal-apps
-        gzip -S .gz -9 source.tar
-        mv source.tar.gz scopehal-apps/
-
-    - name: Upload Source
-      uses: actions/upload-artifact@v2
-      with:
-        name: glscopeclient-source
-        path: source.tar.gz
-
-
-  
-
   Windows:
     runs-on: windows-latest
 
@@ -107,87 +81,124 @@ jobs:
         name: glscopeclient-windows.msi
         path: build_msi/dist/*.msi
 
-# Linux:
-#     runs-on: ubuntu-latest
+Linux:
+    runs-on: ubuntu-latest
 
-#     steps:
+    steps:
 
-#     - uses: actions/checkout@v2
-#       with:
-#         submodules: recursive
+    - uses: actions/checkout@v2
+      with:
+        submodules: recursive
+    
+    - name: Make Source Tarball
+      run: |
+        cd ..
+        tar -cf source.tar scopehal-apps
+        gzip -S .gz -9 source.tar
+        mv source.tar.gz scopehal-apps/
 
-#     - name: Install Dependencies
-#       run: |
-#         sudo apt-get update
-#         sudo apt-get -y install \
-#           build-essential \
-#           cmake \
-#           pkg-config \
-#           libglm-dev \
-#           libvulkan-dev \
-#           libgtkmm-3.0-dev \
-#           libsigc++-2.0-dev \
-#           libyaml-cpp-dev \
-#           liblxi-dev \
-#           texlive \
-#           texlive-fonts-extra \
-#           libglew-dev
+    - name: Upload Source
+      uses: actions/upload-artifact@v2
+      with:
+        name: glscopeclient-source
+        path: source.tar.gz
 
-#     - name: Clone and Build FFTS Library
-#       run: |
-#         git clone https://github.com/anthonix/ffts.git /tmp/ffts
-#         pushd /tmp/ffts
-#         mkdir build
-#         cd build
-#         cmake \
-#           -DENABLE_SHARED=ON \
-#           ..
-#         make -j4
-#         sudo make install
-#         popd
+    - name: Install Dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get -y install \
+          build-essential \
+          cmake \
+          pkg-config \
+          libglm-dev \
+          libvulkan-dev \
+          libgtkmm-3.0-dev \
+          libsigc++-2.0-dev \
+          libyaml-cpp-dev \
+          liblxi-dev \
+          texlive \
+          texlive-fonts-extra \
+          libglew-dev
 
-#     - name: Clone and Build Catch2 Library
-#       run: |
-#         git clone https://github.com/catchorg/Catch2 /tmp/catch2
-#         pushd /tmp/catch2
-#         git checkout v2.13.2
-#         mkdir build
-#         cd build
-#         cmake ..
-#         make -j 4
-#         sudo make install
-#         popd
+    - name: Clone and Build FFTS Library
+      run: |
+        git clone https://github.com/anthonix/ffts.git /tmp/ffts
+        pushd /tmp/ffts
+        mkdir build
+        cd build
+        cmake \
+          -DENABLE_SHARED=ON \
+          ..
+        make -j4
+        sudo make install
+        popd
 
-#     - name: Build
-#       run: |
-#         mkdir build
-#         cd build
-#         cmake \
-#           -DCMAKE_BUILD_TYPE=DEBUG \
-#           -DBUILD_DOCS=ON \
-#           ..
-#         make -j4
+    - name: Clone and Build Catch2 Library
+      run: |
+        git clone https://github.com/catchorg/Catch2 /tmp/catch2
+        pushd /tmp/catch2
+        git checkout v2.13.2
+        mkdir build
+        cd build
+        cmake ..
+        make -j 4
+        sudo make install
+        popd
 
-#     - name: Run Tests
-#       run: |
-#         cd build
-#         make test
+    - name: Build
+      run: |
+        mkdir build
+        cd build
+        cmake \
+          -DCMAKE_BUILD_TYPE=DEBUG \
+          -DBUILD_DOCS=ON \
+          ..
+        make -j4
 
-#     - name: Upload Artifacts
-#       uses: actions/upload-artifact@v2
-#       with:
-#         name: glscopeclient-linux
-#         path: |
-#           build/src/glscopeclient/glscopeclient
-#           build/src/glscopeclient/gradients/*
-#           build/src/glscopeclient/shaders/*
-#           build/src/glscopeclient/styles/*
-#           build/lib/graphwidget/libgraphwidget.so
-#           build/lib/scopehal/libscopehal.so
-#           build/lib/scopeprotocols/libscopeprotocols.so
+    - name: Run Tests
+      run: |
+        cd build
+        make test
 
-#     - name: Upload Documentation
-#       uses: actions/upload-artifact@v2
-#       with:
-#         name: glscopeclient-manual
-#         path: build/doc/glscopeclient-manual.pdf
+    - name: Upload Artifacts
+      uses: actions/upload-artifact@v2
+      with:
+        name: glscopeclient-linux
+        path: |
+          build/src/glscopeclient/glscopeclient
+          build/src/glscopeclient/gradients/*
+          build/src/glscopeclient/shaders/*
+          build/src/glscopeclient/styles/*
+          build/lib/graphwidget/libgraphwidget.so
+          build/lib/scopehal/libscopehal.so
+          build/lib/scopeprotocols/libscopeprotocols.so
+
+    - name: Upload Documentation
+      uses: actions/upload-artifact@v2
+      with:
+        name: glscopeclient-manual
+        path: build/doc/glscopeclient-manual.pdf
+
+
+MacOS:
+    runs-on: [self-hosted, macos]
+
+    steps:
+
+    - uses: actions/checkout@v2
+      with:
+        submodules: recursive
+
+    - name: Build
+      run: |
+        mkdir build
+        cd build
+        cmake \
+          -DCMAKE_BUILD_TYPE=DEBUG \
+          ..
+        make -j4
+
+    - name: Run Tests
+      run: |
+        cd build
+        make test
