@@ -74,6 +74,7 @@ jobs:
     - name: Test
       run: |
         pacman -U --noconfirm --verbose --debug msys2/*.zst
+        vulkaninfo
         VK_LOADER_DEBUG=all glscopeclient --stdout-only --verbose --help
         
 
