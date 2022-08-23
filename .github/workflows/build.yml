@@ -28,9 +28,8 @@ jobs:
 
     - uses: msys2/setup-msys2@v2
       with:
-        update: true
+        update: false
         msystem: MINGW64
-        path-type: inherit
         install: |
           git
           wget
