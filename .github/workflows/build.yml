@@ -41,8 +41,8 @@ jobs:
       shell: msys2 {0}
       run: |
         set MSYSTEM=MINGW64
-        #pacman --noconfirm -U msys2/*.zst
-        #msys2 -c 'glscopeclient --help'
+        pacman --noconfirm -U msys2/*.zst
+        msys2 -c 'glscopeclient --help'
 
     - name: Upload Artifacts
       uses: actions/upload-artifact@v2
