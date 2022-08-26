@@ -10,7 +10,7 @@ on:
 jobs:
 
   Windows:
-    default:
+    defaults:
       if: success() || failure() # Don't stop on errors, just start the next step
 
     strategy:
@@ -69,6 +69,7 @@ jobs:
       shell: msys2 {0}
       run: |
         glscopeclient --help
+        glscopeclient.exe
 
     - name: Upload Artifacts
       uses: actions/upload-artifact@v2
