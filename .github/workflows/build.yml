@@ -15,7 +15,10 @@ jobs:
 
     runs-on: windows-latest
     steps:
-
+    
+    - run: git config --global core.autocrlf input
+      shell: bash
+    
     - uses: actions/checkout@v2
       with:
         submodules: recursive
