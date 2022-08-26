@@ -50,6 +50,11 @@ jobs:
       run: |
         pacman --noconfirm -U msys2/*.zst
 
+    - name: Debugging
+      run: |
+        export
+        ldd glscopeclient.exe
+
     - name: Test
       run: |
         glscopeclient --help
