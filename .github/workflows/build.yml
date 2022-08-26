@@ -10,6 +10,9 @@ on:
 jobs:
 
   Windows:
+    default:
+      if: success() || failure() # Don't stop on errors, just start the next step
+
     strategy:
       fail-fast: false
 
