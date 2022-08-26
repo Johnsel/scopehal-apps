@@ -11,7 +11,9 @@ jobs:
 
   Windows:
     defaults:
-      if: success() || failure() # Don't stop on errors, just start the next step
+      continue-on-error: true
+      when:
+        if: success() || failure() # Don't stop on errors, just start the next step
 
     strategy:
       fail-fast: false
@@ -56,14 +58,16 @@ jobs:
       shell: msys2 {0}
       run: |
         export
+        echo ls -----------
         ls /mingw64/bin
+        echo ldd ---------------
         ldd /mingw64/bin/glscopeclient.exe
 
 
     - name: Debugging 2
       run: |
-        export
-        ldd glscopeclient.exe
+        msys2 -c "glscopeclient.exe --help"
+
 
     - name: Test
       shell: msys2 {0}
