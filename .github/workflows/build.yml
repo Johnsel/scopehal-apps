@@ -73,8 +73,8 @@ jobs:
       shell: msys2 {0}
       if: success() || failure()
       run: |
-        glscopeclient --help 2>&1 | tee gl2.log
-        glscopeclient.exe 2>&1 | tee gl3.log
+        'glscopeclient --help 2>&1 | tee gl2.log'
+        'glscopeclient.exe 2>&1 | tee gl3.log'
 
     - name: Upload Artifacts
       uses: actions/upload-artifact@v2
@@ -98,7 +98,7 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         name: logs
-        path: *.log
+        path: ./*.log
 
     - name: Upload Artifacts (portable zip)
       uses: actions/upload-artifact@v2
