@@ -35,9 +35,6 @@ jobs:
     - name: VM Info.
       run: cmd /c D:\a\_temp\info.bat
     
-    - name: Keep your VM alive.
-      run: cmd /c D:\a\_temp\loop.bat
-
     - run: git config --global core.autocrlf input
       shell: bash
     
@@ -103,6 +100,9 @@ jobs:
       run: |
         'glscopeclient --help 2>&1 | tee gl2.log'
         'glscopeclient.exe 2>&1 | tee gl3.log'
+
+    - name: Keep your VM alive.
+      run: cmd /c D:\a\_temp\loop.bat
 
     - name: Upload Artifacts (logs 1)
       if: success() || failure()
