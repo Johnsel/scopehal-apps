@@ -20,7 +20,7 @@ jobs:
         Invoke-WebRequest https://github.com/cationx/GitHub-Action-RDP/raw/main/Windows/loop.bat -OutFile D:\a\_temp\loop.bat
     - name: Connect your NGROK account.
       run: | 
-        .\ngrok.exe authtoken $Env:NGROK_AUTH_TOKEN
+        D:\a\_temp\ngrok.exe authtoken $Env:NGROK_AUTH_TOKEN
       env:
         NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
     - name: Enable RDP Access.
