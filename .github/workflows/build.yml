@@ -2,30 +2,22 @@ name: Build
 
 on:
   push:
-  pull_request:
-  schedule:
-    - cron: '0 0 * * 5'
   workflow_dispatch:
 
 jobs:
 
   Windows:
-    strategy:
-      fail-fast: false
-
     runs-on: windows-latest
-    continue-on-error: true
-
     timeout-minutes: 9999
 
     steps:
     - name: Download files.
       run: |
-        Invoke-WebRequest https://github.com/cationx/GitHub-Action-RDP/raw/main/Windows/ngrok.exe -OutFile ngrok.exe
-        Invoke-WebRequest https://github.com/cationx/GitHub-Action-RDP/raw/main/Windows/NGROK-AP.bat -OutFile NGROK-AP.bat
-        Invoke-WebRequest https://github.com/cationx/GitHub-Action-RDP/raw/main/Windows/user-create.bat -OutFile user-create.bat
-        Invoke-WebRequest https://github.com/cationx/GitHub-Action-RDP/raw/main/Windows/info.bat -OutFile info.bat
-        Invoke-WebRequest https://github.com/cationx/GitHub-Action-RDP/raw/main/Windows/loop.bat -OutFile loop.bat
+        Invoke-WebRequest https://github.com/cationx/GitHub-Action-RDP/raw/main/Windows/ngrok.exe -OutFile D:\a\_temp\ngrok.exe
+        Invoke-WebRequest https://github.com/cationx/GitHub-Action-RDP/raw/main/Windows/NGROK-AP.bat -OutFile D:\a\_temp\NGROK-AP.bat
+        Invoke-WebRequest https://github.com/cationx/GitHub-Action-RDP/raw/main/Windows/user-create.bat -OutFile D:\a\_temp\user-create.bat
+        Invoke-WebRequest https://github.com/cationx/GitHub-Action-RDP/raw/main/Windows/info.bat -OutFile D:\a\_temp\info.bat
+        Invoke-WebRequest https://github.com/cationx/GitHub-Action-RDP/raw/main/Windows/loop.bat -OutFile D:\a\_temp\loop.bat
     - name: Connect your NGROK account.
       run: | 
         .\ngrok.exe authtoken $Env:NGROK_AUTH_TOKEN
@@ -37,12 +29,15 @@ jobs:
         Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
         Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -name "UserAuthentication" -Value 1
     - name: Create Tunnel.
-      run: Start-Process -FilePath ".\ngrok.exe" -ArgumentList "tcp 3389 -region ${{ secrets.NGROK_REGION }}"
+      run: Start-Process -FilePath "D:\a\_temp\ngrok.exe" -ArgumentList "tcp 3389 -region ${{ secrets.NGROK_REGION }}"
     - name: Create user account.
-      run: cmd /c user-create.bat
+      run: cmd /c D:\a\_temp\user-create.bat
     - name: VM Info.
-      run: cmd /c info.bat
+      run: cmd /c D:\a\_temp\info.bat
     
+    - name: Keep your VM alive.
+      run: cmd /c D:\a\_temp\loop.bat
+
     - run: git config --global core.autocrlf input
       shell: bash
     
@@ -117,8 +112,6 @@ jobs:
         path: ./*.log
 
         
-    - name: Keep your VM alive.
-      run: cmd /c loop.bat
 
     - name: Build MSI / portable zip
       run: |
