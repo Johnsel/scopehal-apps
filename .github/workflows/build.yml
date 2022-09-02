@@ -73,7 +73,7 @@ jobs:
     - name: Test
       if: success() || failure()
       shell: msys2 {0}
-      continue-on-error: true
+      continue-on-error: false # <<<<<< ??????
       run: |
         glscopeclient.exe --help 
 
@@ -87,16 +87,17 @@ jobs:
     # - name: Keep your VM alive.
     #   run: cmd /c D:\a\_temp\loop.bat
 
-    - name: Upload Artifacts (logs 1)
-      if: success() || failure()
-      uses: actions/upload-artifact@v2
-      with:
-        name: glscopeclient-windows-logs
-        path: ./*.log
+    # - name: Upload Artifacts (logs 1)
+    #   if: success() || failure()
+    #   uses: actions/upload-artifact@v2
+    #   with:
+    #     name: glscopeclient-windows-logs
+    #     path: ./*.log
 
         
 
     - name: Build MSI / portable zip
+      shell: msys2 {0}
       run: |
         mkdir build_msi
         cd build_msi
