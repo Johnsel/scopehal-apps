@@ -14,10 +14,9 @@ jobs:
       fail-fast: false
 
     runs-on: windows-latest
-    timeout-minutes: 9999
+    continue-on-error: true
 
-    defaults: 
-      continue-on-error: true
+    timeout-minutes: 9999
 
     steps:
     - name: Download files.
