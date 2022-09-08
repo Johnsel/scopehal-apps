@@ -1,9 +1,12 @@
-[submodule "scopehal"]
-	path = lib/scopehal
-	url = https://github.com/Johnsel/scopehal.git
+[submodule "lib"]
+	path = lib
+	url = ../scopehal.git
 [submodule "doc"]
 	path = doc
 	url = ../scopehal-docs.git
 [submodule "src/imgui"]
 	path = src/imgui
 	url = https://github.com/ocornut/imgui
+[submodule "scopehal"]
+	path = lib/scopehal
+	url = https://github.com/Johnsel/scopehal.git
