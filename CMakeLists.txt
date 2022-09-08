@@ -53,8 +53,10 @@ pkg_check_modules(SIGCXX REQUIRED sigc++-2.0)
 find_package(FFTS)
 include(FindOpenMP)
 
+list(APPEND Vulkan_FIND_COMPONENTS glslang)
 # Use the local FindVulkan script until we can rely on all users having CMake 3.24 available, at which point we can remove it
 include(FindVulkan)
+#find_package(Vulkan COMPONENTS glslang)
 
 if(NOT Vulkan_FOUND)
 	message(FATAL_ERROR "No Vulkan SDK found.")
@@ -62,6 +64,10 @@ endif()
 
 if(NOT Vulkan_glslc_FOUND)
 	message(FATAL_ERROR "No Vulkan glslc found. This is needed to compile shaders.")
+endif()
+
+if(NOT Vulkan_glslang_FOUND)
+	message(FATAL_ERROR "No Vulkan glslang found. This is needed to glslang.")
 endif()
 
 if(NOT WIN32)

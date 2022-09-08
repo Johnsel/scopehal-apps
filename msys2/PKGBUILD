@@ -22,6 +22,8 @@ depends=(
   "${MINGW_PACKAGE_PREFIX}-spirv-headers"
   "${MINGW_PACKAGE_PREFIX}-opencl-headers"
   "${MINGW_PACKAGE_PREFIX}-opencl-icd"
+  "${MINGW_PACKAGE_PREFIX}-glslang"
+  "${MINGW_PACKAGE_PREFIX}-glfw"
 )
 makedepends=(
   "${MINGW_PACKAGE_PREFIX}-cmake"
@@ -36,10 +38,10 @@ pkgver() {
 build() {
   cd "${srcdir}"/../..
 
-  git remote set-url origin git://github.com/glscopeclient/scopehal-apps
+  #git remote set-url origin git://github.com/glscopeclient/scopehal-apps
   git submodule update --init --recursive
 
-  mkdir build
+  mkdir -p build
   cd build
 
   CXXFLAGS+=" -Wno-format" \
