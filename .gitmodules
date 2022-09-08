@@ -7,6 +7,3 @@
 [submodule "src/imgui"]
 	path = src/imgui
 	url = https://github.com/ocornut/imgui
-[submodule "scopehal"]
-	path = lib/scopehal
-	url = https://github.com/Johnsel/scopehal.git
