@@ -1,8 +1,8 @@
 /***********************************************************************************************************************
 *                                                                                                                      *
-* glscopeclient                                                                                                        *
+* libscopeprotocols                                                                                                    *
 *                                                                                                                      *
-* Copyright (c) 2012-2022 Andrew D. Zonenberg                                                                          *
+* Copyright (c) 2012-2022 Andrew D. Zonenberg and contributors                                                         *
 * All rights reserved.                                                                                                 *
 *                                                                                                                      *
 * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the     *
@@ -26,33 +26,70 @@
 * POSSIBILITY OF SUCH DAMAGE.                                                                                          *
 *                                                                                                                      *
 ***********************************************************************************************************************/
-#ifndef ngscopeclient_h
-#define ngscopeclient_h
 
-#include "./scopehal.h"
-
-#include <vector>
-#include <string>
-#include <map>
-#include <stdint.h>
-#include <chrono>
-#include <thread>
-#include <memory>
-
-#include <sigc++/sigc++.h>
+#ifndef PipelineCacheManager_h
+#define PipelineCacheManager_h
 
 #include <vulkan/vulkan_raii.hpp>
+#include <memory>
+#include <string>
+#include <vector>
+#include <map>
 
-#include <GLFW/glfw3.h>
-#include <imgui.h>
-#include <backends/imgui_impl_glfw.h>
-#include <backends/imgui_impl_vulkan.h>
+#pragma pack(push, 1)
+struct PipelineCacheFileHeader
+{
+	uint8_t		cache_uuid[16];
+	time_t		file_mtime;
+	int32_t		vkfft_ver;
+	uint32_t	driver_ver;
+	uint32_t	len;
+	uint32_t	crc;
+};
+#pragma pack(pop)
 
-#include <atomic>
+/**
+	@brief Helper for managing Vulkan / vkFFT pipeline cache objects
 
-void ScopeThread(Oscilloscope* scope, std::atomic<bool>* shuttingDown);
+	The cache is stored on disk under the .cache/glscopeclient directory on Linux, or FIXME on Windows.
 
-#include <yaml-cpp/yaml.h>
+	Raw data: $cachedir/shader_raw_[key].bin
+	Vulkan shader data: $cachedir/shader_pipeline_[key].bin
+ */
+class PipelineCacheManager
+{
+public:
+	PipelineCacheManager();
+	~PipelineCacheManager();
 
-#include "log/log.h"
+	std::shared_ptr< std::vector<uint8_t> > LookupRaw(const std::string& key);
+	void StoreRaw(const std::string& key, std::shared_ptr< std::vector<uint8_t> > value);
+
+	std::shared_ptr<vk::raii::PipelineCache> Lookup(const std::string& key, time_t target);
+
+	void LoadFromDisk();
+	void SaveToDisk();
+	void Clear();
+
+protected:
+	void FindPath();
+
+	///@brief Mutex to interlock access to the STL containers
+	std::mutex m_mutex;
+
+	///@brief Vulkan pipeline cache objects
+	std::map<std::string, std::shared_ptr<vk::raii::PipelineCache> > m_vkCache;
+
+	///@brief The actual cache data store
+	std::map<std::string, std::shared_ptr<std::vector<uint8_t> > > m_rawDataCache;
+
+	///@brief Modification timestamps of the files
+	std::map<std::string, time_t> m_vkCacheTimestamps;
+
+	///@brief Root directory of the cache
+	std::string m_cacheRootDir;
+};
+
+extern std::unique_ptr<PipelineCacheManager> g_pipelineCacheMgr;
+
 #endif

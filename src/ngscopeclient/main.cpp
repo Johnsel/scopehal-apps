@@ -34,8 +34,8 @@
  */
 #include "ngscopeclient.h"
 #include "MainWindow.h"
-#include "../scopeprotocols/scopeprotocols.h"
-#include "../scopeexports/scopeexports.h"
+//#include "../../scopeprotocols/scopeprotocols.h"
+//#include "../../lib/scopeexports/scopeexports.h"
 
 using namespace std;
 
@@ -48,7 +48,7 @@ void Relaunch(int argc, char* argv[]);
 int main(int argc, char* argv[])
 {
 	//Global settings
-	Severity console_verbosity = Severity::NOTICE;
+		Severity console_verbosity = Severity::NOTICE;
 
 	for(int i=1; i<argc; i++)
 	{
@@ -100,8 +100,8 @@ int main(int argc, char* argv[])
 		return 1;
 	TransportStaticInit();
 	DriverStaticInit();
-	ScopeProtocolStaticInit();
-	ScopeExportStaticInit();
+	//ScopeProtocolStaticInit();
+	//ScopeExportStaticInit();
 	InitializePlugins();
 
 	//Initialize ImGui

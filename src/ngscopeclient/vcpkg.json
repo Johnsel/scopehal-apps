@@ -1,0 +1,14 @@
+{
+    "name": "ngscopeclient",
+    "version-string": "0.0.1",
+    "port-version": 2,
+    "description": "Software system for T&M data visualization",
+    "dependencies": [
+      "libsigcpp",
+      "glfw3",
+      "vulkan",
+      "vkfft",
+      "glslang",
+      "yaml-cpp"
+    ]
+  }

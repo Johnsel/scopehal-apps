@@ -2,7 +2,7 @@
 *                                                                                                                      *
 * glscopeclient                                                                                                        *
 *                                                                                                                      *
-* Copyright (c) 2012-2022 Andrew D. Zonenberg                                                                          *
+* Copyright (c) 2012-2020 Andrew D. Zonenberg                                                                          *
 * All rights reserved.                                                                                                 *
 *                                                                                                                      *
 * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the     *
@@ -26,33 +26,23 @@
 * POSSIBILITY OF SUCH DAMAGE.                                                                                          *
 *                                                                                                                      *
 ***********************************************************************************************************************/
-#ifndef ngscopeclient_h
-#define ngscopeclient_h
 
-#include "./scopehal.h"
+/**
+	@file
+	@author Katharina B
+	@brief Common file system utilities
+ */
 
-#include <vector>
+#ifndef FileSystem_h
+#define FileSystem_h
+
 #include <string>
-#include <map>
-#include <stdint.h>
-#include <chrono>
-#include <thread>
-#include <memory>
+#include <vector>
 
-#include <sigc++/sigc++.h>
+// Find all files/directories matching given pattern
+std::vector<std::string> Glob(const std::string& pathPattern, bool onlyDirectories);
 
-#include <vulkan/vulkan_raii.hpp>
+// Remove given directory and all its contents
+void RemoveDirectory(const std::string& basePath);
 
-#include <GLFW/glfw3.h>
-#include <imgui.h>
-#include <backends/imgui_impl_glfw.h>
-#include <backends/imgui_impl_vulkan.h>
-
-#include <atomic>
-
-void ScopeThread(Oscilloscope* scope, std::atomic<bool>* shuttingDown);
-
-#include <yaml-cpp/yaml.h>
-
-#include "log/log.h"
-#endif
+#endif // FileSystem_h

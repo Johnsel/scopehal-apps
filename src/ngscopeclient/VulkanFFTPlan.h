@@ -1,8 +1,8 @@
 /***********************************************************************************************************************
 *                                                                                                                      *
-* glscopeclient                                                                                                        *
+* libscopehal v0.1                                                                                                     *
 *                                                                                                                      *
-* Copyright (c) 2012-2022 Andrew D. Zonenberg                                                                          *
+* Copyright (c) 2012-2022 Andrew D. Zonenberg and contributors                                                         *
 * All rights reserved.                                                                                                 *
 *                                                                                                                      *
 * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the     *
@@ -26,33 +26,80 @@
 * POSSIBILITY OF SUCH DAMAGE.                                                                                          *
 *                                                                                                                      *
 ***********************************************************************************************************************/
-#ifndef ngscopeclient_h
-#define ngscopeclient_h
 
-#include "./scopehal.h"
+/**
+	@file
+	@author Andrew D. Zonenberg
+	@brief Declaration of VulkanFFTPlan
+ */
+#ifndef VulkanFFTPlan_h
+#define VulkanFFTPlan_h
 
-#include <vector>
-#include <string>
-#include <map>
-#include <stdint.h>
-#include <chrono>
-#include <thread>
-#include <memory>
+//Lots of warnings here, disable them
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmissing-field-initializers"
+#pragma GCC diagnostic ignored "-Wunused-variable"
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+#pragma GCC diagnostic ignored "-Wpedantic"
+#pragma GCC diagnostic ignored "-Wshadow"
+#pragma GCC diagnostic ignored "-Wsign-compare"
+#include <vkfft/vkFFT.h>
+#pragma GCC diagnostic pop
 
-#include <sigc++/sigc++.h>
+#include "AcceleratorBuffer.h"
+#include "PipelineCacheManager.h"
 
-#include <vulkan/vulkan_raii.hpp>
+extern std::unique_ptr<vk::raii::CommandPool> g_vkFFTCommandPool;
+extern std::unique_ptr<vk::raii::CommandBuffer> g_vkFFTCommandBuffer;
+extern std::unique_ptr<vk::raii::Queue> g_vkFFTQueue;
+extern std::mutex g_vkFFTMutex;
+extern vk::raii::PhysicalDevice* g_vkfftPhysicalDevice;
 
-#include <GLFW/glfw3.h>
-#include <imgui.h>
-#include <backends/imgui_impl_glfw.h>
-#include <backends/imgui_impl_vulkan.h>
+/**
+	@brief RAII wrapper around a VkFFTApplication and VkFFTConfiguration
+ */
+class VulkanFFTPlan
+{
+public:
 
-#include <atomic>
+	enum VulkanFFTPlanDirection
+	{
+		DIRECTION_FORWARD,
+		DIRECTION_REVERSE
+	};
 
-void ScopeThread(Oscilloscope* scope, std::atomic<bool>* shuttingDown);
+	VulkanFFTPlan(size_t npoints, size_t nouts, VulkanFFTPlanDirection dir);
+	~VulkanFFTPlan();
 
-#include <yaml-cpp/yaml.h>
+	void AppendForward(
+		AcceleratorBuffer<float>& dataIn,
+		AcceleratorBuffer<float>& dataOut,
+		vk::raii::CommandBuffer& cmdBuf);
 
-#include "log/log.h"
+	void AppendReverse(
+		AcceleratorBuffer<float>& dataIn,
+		AcceleratorBuffer<float>& dataOut,
+		vk::raii::CommandBuffer& cmdBuf);
+
+	size_t size() const
+	{ return m_size; }
+
+protected:
+	VkFFTApplication m_app;
+	VkFFTConfiguration m_config;
+	size_t m_size;
+
+	//this is ugly but apparently we can't take a pointer to the underlying vk:: c++ wrapper object?
+	VkPhysicalDevice m_physicalDevice;
+	VkDevice m_device;
+	VkCommandPool m_pool;
+	VkQueue m_queue;
+
+	vk::raii::Fence m_fence;
+	VkFence m_rawfence;
+
+	uint64_t m_bsize;
+	uint64_t m_isize;
+};
+
 #endif

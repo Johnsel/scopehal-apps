@@ -1,0 +1,10 @@
+^C:\GITHUB\SCOPEHAL-APPS\SRC\NGSCOPECLIENT\LOG\CMAKELISTS.TXT
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/GitHub/scopehal-apps/src/ngscopeclient -BC:/GitHub/scopehal-apps/src/ngscopeclient --check-stamp-file C:/GitHub/scopehal-apps/src/ngscopeclient/log/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

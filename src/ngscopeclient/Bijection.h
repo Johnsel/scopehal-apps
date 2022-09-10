@@ -1,8 +1,8 @@
 /***********************************************************************************************************************
 *                                                                                                                      *
-* glscopeclient                                                                                                        *
+* libscopehal v0.1                                                                                                     *
 *                                                                                                                      *
-* Copyright (c) 2012-2022 Andrew D. Zonenberg                                                                          *
+* Copyright (c) 2012-2021 Andrew D. Zonenberg and contributors                                                         *
 * All rights reserved.                                                                                                 *
 *                                                                                                                      *
 * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the     *
@@ -26,33 +26,49 @@
 * POSSIBILITY OF SUCH DAMAGE.                                                                                          *
 *                                                                                                                      *
 ***********************************************************************************************************************/
-#ifndef ngscopeclient_h
-#define ngscopeclient_h
 
-#include "./scopehal.h"
+/**
+	@file
+	@author Andrew D. Zonenberg
+	@brief Declaration of Bijection class
+ */
+#ifndef Bijection_h
+#define Bijection_h
 
-#include <vector>
-#include <string>
-#include <map>
-#include <stdint.h>
-#include <chrono>
-#include <thread>
-#include <memory>
+/**
+	@brief A one-to-one mapping from objects of type T1 to type T2, which must be different types
 
-#include <sigc++/sigc++.h>
+	For now insert-only, elements can be inserted or iterated but not removed.
+ */
+template<class T1, class T2>
+class Bijection
+{
+public:
 
-#include <vulkan/vulkan_raii.hpp>
+	typedef std::map<T1, T2> forwardType;
+	typedef std::map<T2, T1> reverseType;
 
-#include <GLFW/glfw3.h>
-#include <imgui.h>
-#include <backends/imgui_impl_glfw.h>
-#include <backends/imgui_impl_vulkan.h>
+	typename forwardType::const_iterator begin()
+	{ return m_forwardMap.begin(); }
 
-#include <atomic>
+	typename forwardType::const_iterator end()
+	{ return m_forwardMap.end(); }
 
-void ScopeThread(Oscilloscope* scope, std::atomic<bool>* shuttingDown);
+	void emplace(T1 a, T2 b)
+	{
+		m_forwardMap[a] = b;
+		m_reverseMap[b] = a;
+	}
 
-#include <yaml-cpp/yaml.h>
+	const T1& operator[](T2 key)
+	{ return m_reverseMap[key]; }
 
-#include "log/log.h"
+	const T2& operator[](T1 key)
+	{ return m_forwardMap[key]; }
+
+protected:
+	forwardType m_forwardMap;
+	reverseType m_reverseMap;
+};
+
 #endif

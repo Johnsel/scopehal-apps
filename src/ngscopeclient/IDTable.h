@@ -1,8 +1,8 @@
 /***********************************************************************************************************************
 *                                                                                                                      *
-* glscopeclient                                                                                                        *
+* libscopehal v0.1                                                                                                     *
 *                                                                                                                      *
-* Copyright (c) 2012-2022 Andrew D. Zonenberg                                                                          *
+* Copyright (c) 2012-2021 Andrew D. Zonenberg and contributors                                                         *
 * All rights reserved.                                                                                                 *
 *                                                                                                                      *
 * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the     *
@@ -26,33 +26,46 @@
 * POSSIBILITY OF SUCH DAMAGE.                                                                                          *
 *                                                                                                                      *
 ***********************************************************************************************************************/
-#ifndef ngscopeclient_h
-#define ngscopeclient_h
 
-#include "./scopehal.h"
+/**
+	@file
+	@author Andrew D. Zonenberg
+	@brief Declaration of IDTable class
+ */
+#ifndef IDTable_h
+#define IDTable_h
 
-#include <vector>
-#include <string>
-#include <map>
-#include <stdint.h>
-#include <chrono>
-#include <thread>
-#include <memory>
+class IDTable : public Bijection<int, void*>
+{
+public:
+	IDTable()
+	: m_nextID(1)
+	{
+		emplace(0, NULL);
+	}
 
-#include <sigc++/sigc++.h>
+	int emplace(void* p)
+	{
+		if(HasID(p))
+			return m_reverseMap[p];
 
-#include <vulkan/vulkan_raii.hpp>
+		int id = m_nextID ++;
+		Bijection::emplace(id, p);
+		return id;
+	}
 
-#include <GLFW/glfw3.h>
-#include <imgui.h>
-#include <backends/imgui_impl_glfw.h>
-#include <backends/imgui_impl_vulkan.h>
+	void emplace(int id, void* p)
+	{
+		Bijection::emplace(id, p);
+	}
 
-#include <atomic>
+	bool HasID(void* p)
+	{
+		return (m_reverseMap.find(p) != m_reverseMap.end());
+	}
 
-void ScopeThread(Oscilloscope* scope, std::atomic<bool>* shuttingDown);
+protected:
+	int m_nextID;
+};
 
-#include <yaml-cpp/yaml.h>
-
-#include "log/log.h"
 #endif

@@ -34,7 +34,7 @@
  */
 #include "ngscopeclient.h"
 #include "VulkanWindow.h"
-#include "VulkanFFTPlan.h"
+#include "../../lib/scopehal/VulkanFFTPlan.h"
 
 using namespace std;
 
@@ -67,7 +67,7 @@ VulkanWindow::VulkanWindow(const string& title, vk::raii::Queue& queue)
 	m_window = glfwCreateWindow(1280, 720, title.c_str(), nullptr, nullptr);
 	if(!m_window)
 	{
-		LogError("Window creation failed\n");
+		//LogError("Window creation failed\n");
 		abort();
 	}
 
@@ -75,7 +75,7 @@ VulkanWindow::VulkanWindow(const string& title, vk::raii::Queue& queue)
 	VkSurfaceKHR surface;
 	if(VK_SUCCESS != glfwCreateWindowSurface(**g_vkInstance, m_window, nullptr, &surface))
 	{
-		LogError("Vulkan surface creation failed\n");
+		//LogError("Vulkan surface creation failed\n");
 		abort();
 	}
 
