@@ -45,7 +45,9 @@ jobs:
       id: cache-glslang
       uses: actions/cache@v3
       with:
-        path: ~/glslang
+        path: |
+          ./glslang
+          ~/glslang
         key: ${{ runner.os }}-glslang
 
     - name: Build glslang tags/sdk-1.3.224.1
