@@ -1,7 +1,7 @@
 _realname=scopehal-apps
 pkgbase=mingw-w64-${_realname}
 pkgname="${MINGW_PACKAGE_PREFIX}-${_realname}"
-pkgver=ci
+pkgver=0.0.0.r2770.g9e05723
 pkgrel=1
 pkgdesc="scopehal-apps: applications for libscopehal (mingw-w64)"
 arch=('any')
@@ -40,7 +40,7 @@ build() {
   ${MINGW_PREFIX}/bin/cmake.exe \
     -G "Ninja" \
     -DCMAKE_BUILD_TYPE=Debug \
-    -DWIXPATH="/c/Program Files (x86)/WiX Toolset v3.11/bin" \
+    -DWIXPATH="/c/Program Files (x86)/WiX Toolset v3.14/bin" \
     -DCMAKE_INSTALL_PREFIX="${MINGW_PREFIX}" \
     -DBUILD_TESTING=OFF \
     ../

@@ -230,7 +230,6 @@ add_subdirectory("${PROJECT_SOURCE_DIR}/lib/xptools")
 add_subdirectory("${PROJECT_SOURCE_DIR}/lib/log")
 add_subdirectory("${PROJECT_SOURCE_DIR}/src/ngscopeclient")
 add_subdirectory("${PROJECT_SOURCE_DIR}/src/nativefiledialog-extended")
-add_subdirectory("${PROJECT_SOURCE_DIR}/src/thunderscope-driver")
 
 # Unit tests
 if(BUILD_TESTING)
@@ -256,4 +255,3 @@ set_property(TARGET scopehal PROPERTY POSITION_INDEPENDENT_CODE ON)
 set_property(TARGET log PROPERTY POSITION_INDEPENDENT_CODE ON)
 set_property(TARGET xptools PROPERTY POSITION_INDEPENDENT_CODE ON)
 set_property(TARGET scopeprotocols PROPERTY POSITION_INDEPENDENT_CODE ON)
-set_property(TARGET thunderscope-driver PROPERTY POSITION_INDEPENDENT_CODE ON)
