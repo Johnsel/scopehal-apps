@@ -231,6 +231,9 @@ add_subdirectory("${PROJECT_SOURCE_DIR}/lib/log")
 add_subdirectory("${PROJECT_SOURCE_DIR}/src/ngscopeclient")
 add_subdirectory("${PROJECT_SOURCE_DIR}/src/nativefiledialog-extended")
 
+# ThunderScope
+add_subdirectory("${PROJECT_SOURCE_DIR}/lib/libthunderscope")
+
 # Unit tests
 if(BUILD_TESTING)
 	find_package(Catch2 REQUIRED)
