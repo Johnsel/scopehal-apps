@@ -39,12 +39,23 @@ endif()
 add_compile_options(-Wall -Wextra -Wuninitialized)
 add_compile_options(-Wshadow -Wpedantic -Wcast-align -Wwrite-strings)
 add_compile_options(-Wmissing-declarations -Wvla)
+add_compile_options(-Werror -Wno-error=maybe-uninitialized)
+add_compile_options(-Wno-error=deprecated-declarations -Wno-error=unused-parameter -Wno-error=unused-variable -Wno-error=unused-result -Wno-error=restrict -Wno-error=unused-function -Wno-error=missing-field-initializers -Wno-error=shadow -Wno-error=missing-declarations) # some of these are for libtslitex
 
 # Compiler warnings
-if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-elseif (CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
-  add_compile_options(-Wpointer-sign -Wno-gnu-zero-variadic-macro-arguments -Wno-unknown-warning-option)
-endif()
+add_compile_options($<$<AND:$<COMPILE_LANG_AND_ID:CXX,GNU>,$<VERSION_GREATER_EQUAL:$<CXX_COMPILER_VERSION>,13>>:-Woverloaded-virtual=1>)
+
+add_compile_options($<$<AND:$<COMPILE_LANG_AND_ID:C,GNU>,$<VERSION_GREATER_EQUAL:$<C_COMPILER_VERSION>,13>>:-Wno-error=sign-compare>)
+
+add_compile_options($<$<COMPILE_LANG_AND_ID:CXX,Clang,AppleClang>:-Woverloaded-virtual$<SEMICOLON>-Wpointer-sign$<SEMICOLON>-Wno-gnu-zero-variadic-macro-arguments$<SEMICOLON>-Wno-unknown-warning-option>)
+
+#if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 13)
+#      add_compile_options(-Woverloaded-virtual=1)
+#elseif (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+#  add_compile_options(-Woverloaded-virtual -Wpointer-sign -Wno-gnu-zero-variadic-macro-arguments -Wno-unknown-warning-option)
+#endif()
+
+
 add_compile_options(-g -mtune=native)
 add_compile_options("$<$<CONFIG:RELEASE>:-O3>")
 add_compile_options("$<$<CONFIG:DEBUG>:-O0;-D_DEBUG>")
@@ -224,6 +235,7 @@ if(ANALYZE)
 endif()
 
 # Main project code
+add_subdirectory("${PROJECT_SOURCE_DIR}/lib/libtslitex")
 add_subdirectory("${PROJECT_SOURCE_DIR}/lib/scopehal")
 add_subdirectory("${PROJECT_SOURCE_DIR}/lib/scopeprotocols")
 add_subdirectory("${PROJECT_SOURCE_DIR}/lib/xptools")
@@ -232,7 +244,7 @@ add_subdirectory("${PROJECT_SOURCE_DIR}/src/ngscopeclient")
 add_subdirectory("${PROJECT_SOURCE_DIR}/src/nativefiledialog-extended")
 
 # ThunderScope
-add_subdirectory("${PROJECT_SOURCE_DIR}/lib/libthunderscope")
+#add_subdirectory("${PROJECT_SOURCE_DIR}/lib/libthunderscope")
 
 # Unit tests
 if(BUILD_TESTING)
