@@ -1,8 +1,8 @@
 /***********************************************************************************************************************
 *                                                                                                                      *
-* glscopeclient                                                                                                        *
+* ngscopeclient                                                                                                        *
 *                                                                                                                      *
-* Copyright (c) 2012-2022 Andrew D. Zonenberg and contributors                                                         *
+* Copyright (c) 2012-2024 Andrew D. Zonenberg and contributors                                                         *
 * All rights reserved.                                                                                                 *
 *                                                                                                                      *
 * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the     *
@@ -27,116 +27,51 @@
 *                                                                                                                      *
 ***********************************************************************************************************************/
 
-/**
-	@file
-	@author Andrew D. Zonenberg
-	@brief Main code for Filters test case
- */
+#version 430
+#pragma shader_stage(compute)
 
-#define CATCH_CONFIG_RUNNER
-#ifdef _CATCH2_V3
-#include <catch2/catch_all.hpp>
-#else
-#include <catch2/catch.hpp>
-#define EventListenerBase TestEventListenerBase
-#endif
-#include "Filters.h"
-
-using namespace std;
-
-minstd_rand g_rng;
-MockOscilloscope* g_scope;
-
-// Global initialization
-class testRunListener : public Catch::EventListenerBase
+layout(std430, binding=0) restrict readonly buffer buf_pixels
 {
-public:
-    using Catch::EventListenerBase::EventListenerBase;
-
-    void testRunStarting(Catch::TestRunInfo const&) override
-    {
-		g_log_sinks.emplace(g_log_sinks.begin(), new ColoredSTDLogSink(Severity::VERBOSE));
-
-		if(!VulkanInit(true))
-			exit(1);
-		TransportStaticInit();
-		DriverStaticInit();
-		InitializePlugins();
-		ScopeProtocolStaticInit();
-
-		//Add search path
-		g_searchPaths.push_back(GetDirOfCurrentExecutable() + "/../../src/ngscopeclient/");
-
-		//Initialize the RNG
-		g_rng.seed(0);
-
-		//Create some fake scope channels
-		g_scope = new MockOscilloscope("Test Scope", "Antikernel Labs", "12345", "null", "mock", "");
-		g_scope->AddChannel(new OscilloscopeChannel(
-			g_scope, "CH1", "#ffffffff", Unit(Unit::UNIT_FS), Unit(Unit::UNIT_VOLTS)));
-		g_scope->AddChannel(new OscilloscopeChannel(
-			g_scope, "CH2", "#ffffffff", Unit(Unit::UNIT_FS), Unit(Unit::UNIT_VOLTS)));
-
-		g_scope->AddChannel(new OscilloscopeChannel(
-			g_scope, "Mag", "#ffffffff", Unit(Unit::UNIT_HZ), Unit(Unit::UNIT_DB)));
-		g_scope->AddChannel(new OscilloscopeChannel(
-			g_scope, "Angle", "#ffffffff", Unit(Unit::UNIT_HZ), Unit(Unit::UNIT_DEGREES)));
-
-	}
-
-	//Clean up after the scope goes out of scope (pun not intended)
-	void testRunEnded([[maybe_unused]] Catch::TestRunStats const& testRunStats) override
-	{
-		delete g_scope;
-		ScopehalStaticCleanup();
-	}
+	float pixels[];
 };
-CATCH_REGISTER_LISTENER(testRunListener)
 
-int main(int argc, char* argv[])
+layout(binding=1, rgba32f) uniform image2D outputTex;
+
+layout(binding=2) uniform sampler2D colorRamp;
+
+layout(std430, push_constant) uniform constants
 {
-	return Catch::Session().run(argc, argv);
-}
+	uint width;
+	uint height;
+};
 
-/**
-	@brief Fills a waveform with random content, uniformly distributed from fmin to fmax
- */
-void FillRandomWaveform(UniformAnalogWaveform* wfm, size_t size, float fmin, float fmax)
+layout(local_size_x=64, local_size_y=1, local_size_z=1) in;
+
+void main()
 {
-	auto rdist = uniform_real_distribution<float>(fmin, fmax);
+	if(gl_GlobalInvocationID.x >= width)
+		return;
+	if(gl_GlobalInvocationID.y >= height)
+		return;
 
-	wfm->PrepareForCpuAccess();
-	wfm->Resize(size);
+	//Intensity graded grayscale input
+	uint npixel = gl_GlobalInvocationID.y*width + gl_GlobalInvocationID.x;
+	float pixval = pixels[npixel];
 
-	for(size_t i=0; i<size; i++)
-		wfm->m_samples[i] = rdist(g_rng);
+	//Look it up in the gradient texture
+	float clamped = min(pixval, 0.99);
 
-	wfm->MarkModifiedFromCpu();
-
-	wfm->m_revision ++;
-	if(wfm->m_timescale == 0)
-		wfm->m_timescale = 1000;
-}
-
-void VerifyMatchingResult(AcceleratorBuffer<float>& golden, AcceleratorBuffer<float>& observed, float tolerance)
-{
-	REQUIRE(golden.size() == observed.size());
-
-	golden.PrepareForCpuAccess();
-	observed.PrepareForCpuAccess();
-	size_t len = golden.size();
-
-	bool firstFail = true;
-	for(size_t i=0; i<len; i++)
+	//Write final output
+	vec4 colorOut;
+	if(clamped <= 0)
+		colorOut = vec4(0,0,0,0);
+	else
 	{
-		float delta = fabs(golden[i] - observed[i]);
-
-		if( (delta >= tolerance) && firstFail)
-		{
-			LogError("first fail at i=%zu (delta=%f, tolerance=%f)\n", i, delta, tolerance);
-			firstFail = false;
-		}
-
-		REQUIRE(delta < tolerance);
+		clamped += 0.5 / 255.0;
+		colorOut = texture(colorRamp, vec2(clamped, 0.5));
 	}
+	imageStore(
+		outputTex,
+		ivec2(gl_GlobalInvocationID.x, gl_GlobalInvocationID.y),
+		colorOut);
 }

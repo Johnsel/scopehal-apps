@@ -177,6 +177,7 @@ bool FilterPropertiesDialog::DoRender()
 				}
 
 				//The actual combo box
+				ImGui::SetNextItemWidth(ImGui::GetFontSize() * 10);
 				if(Combo(f->GetInputName(i).c_str(), names, sel))
 				{
 					f->SetInput(i, matchingInputs[sel]);
@@ -354,6 +355,7 @@ bool FilterPropertiesDialog::DoParameter(FilterParameter& param, string name, ma
 					}
 				}
 
+				ImGui::SetNextItemWidth(ImGui::GetFontSize() * 12);
 				if(Dialog::Combo(name.c_str(), enumValues, nsel))
 				{
 					param.ParseString(enumValues[nsel]);
@@ -516,6 +518,9 @@ void FilterPropertiesDialog::OnReconfigured(Filter* f, size_t oldStreamCount)
 		for(size_t i=oldStreamCount; i < newStreamCount; i++)
 			m_parent->FindAreaForStream(nullptr, StreamDescriptor(m_channel, i));
 	}
+
+	//Regenerate our temporary values since parameters might have been changed
+	m_paramTempValues.clear();
 }
 
 /**

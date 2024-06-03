@@ -37,6 +37,7 @@
 #include "MainWindow.h"
 #include "BERTInputChannelDialog.h"
 #include "BERTOutputChannelDialog.h"
+#include "DigitalOutputChannelDialog.h"
 #include "ChannelPropertiesDialog.h"
 #include "FilterPropertiesDialog.h"
 #include "EmbeddedTriggerPropertiesDialog.h"
@@ -572,7 +573,12 @@ bool FilterGraphEditor::DoRender()
 	//Filters
 	auto filters = Filter::GetAllInstances();
 	for(auto f : filters)
+	{
 		DoNodeForChannel(f, nullptr);
+
+		//Add a reference to the channel so even if we remove the last user of it this frame, it won't be deleted until we're ready
+		f->AddRef();
+	}
 	ClearOldPropertiesDialogs();
 
 	//All nodes
@@ -661,6 +667,11 @@ bool FilterGraphEditor::DoRender()
 
 		m_parent->OnFilterReconfigured(fReconfigure);
 	}
+
+	//Remove our temporary ref on filters we're rendering
+	//This may cause some to be deleted
+	for(auto f : filters)
+		f->Release();
 
 	return true;
 }
@@ -2022,11 +2033,14 @@ void FilterGraphEditor::DoNodeForChannel(InstrumentChannel* channel, Instrument*
 		if( (dynamic_cast<PowerSupplyChannel*>(channel)) ||
 			(dynamic_cast<FunctionGeneratorChannel*>(channel)) ||
 			(dynamic_cast<RFSignalGeneratorChannel*>(channel)) ||
+			(dynamic_cast<DigitalOutputChannel*>(channel)) ||
 			(dynamic_cast<BERTOutputChannel*>(channel))
 			)
 		{
 			blocktype = "Hardware output";
 		}
+		else if(dynamic_cast<DigitalIOChannel*>(channel))
+			blocktype = "Hardware I/O";
 		else
 			blocktype = "Hardware input";
 	}
@@ -2297,6 +2311,7 @@ void FilterGraphEditor::HandleNodeProperties()
 			auto f = dynamic_cast<Filter*>(o);
 			auto bo = dynamic_cast<BERTOutputChannel*>(node);
 			auto bi = dynamic_cast<BERTInputChannel*>(node);
+			auto dio = dynamic_cast<DigitalOutputChannel*>(node);
 
 			//Make the properties window
 			if(m_propertiesDialogs.find(id) == m_propertiesDialogs.end())
@@ -2309,6 +2324,8 @@ void FilterGraphEditor::HandleNodeProperties()
 					m_propertiesDialogs[id] = make_shared<BERTOutputChannelDialog>(bo, true);
 				else if(bi)
 					m_propertiesDialogs[id] = make_shared<BERTInputChannelDialog>(bi, m_parent, true);
+				else if(dio)
+					m_propertiesDialogs[id] = make_shared<DigitalOutputChannelDialog>(dio, m_parent, true);
 
 				//must be last since many other types are derived from OscilloscopeChannel
 				else if(o)

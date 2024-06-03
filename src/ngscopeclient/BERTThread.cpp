@@ -1,8 +1,8 @@
 /***********************************************************************************************************************
 *                                                                                                                      *
-* glscopeclient                                                                                                        *
+* ngscopeclient                                                                                                        *
 *                                                                                                                      *
-* Copyright (c) 2012-2023 Andrew D. Zonenberg                                                                          *
+* Copyright (c) 2012-2024 Andrew D. Zonenberg                                                                          *
 * All rights reserved.                                                                                                 *
 *                                                                                                                      *
 * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the     *
@@ -61,10 +61,30 @@ void BERTThread(BERTThreadArgs args)
 		for(size_t i=0; i<bert->GetChannelCount(); i++)
 		{
 			if(state->m_horzBathtubScanPending[i].exchange(false))
+			{
+				Unit fs(Unit::UNIT_FS);
+				auto expected = bert->GetExpectedBathtubCaptureTime(i);
+				LogTrace("Starting bathtub scan, expecting to take %s\n", fs.PrettyPrint(expected).c_str());
+
+				double start = GetTime();
 				bert->MeasureHBathtub(i);
+				double dt = (GetTime() - start) * FS_PER_SECOND;
+
+				LogTrace("Scan actually took %s\n", fs.PrettyPrint(dt).c_str());
+			}
 
 			if(state->m_eyeScanPending[i].exchange(false))
+			{
+				Unit fs(Unit::UNIT_FS);
+				auto expected = bert->GetExpectedEyeCaptureTime(i);
+				LogTrace("Starting eye scan, expecting to take %s\n", fs.PrettyPrint(expected).c_str());
+
+				double start = GetTime();
 				bert->MeasureEye(i);
+				double dt = (GetTime() - start) * FS_PER_SECOND;
+
+				LogTrace("Scan actually took %s\n", fs.PrettyPrint(dt).c_str());
+			}
 
 			args.session->MarkChannelDirty(bert->GetChannel(i));
 		}
@@ -72,8 +92,8 @@ void BERTThread(BERTThreadArgs args)
 
 		state->m_firstUpdateDone = true;
 
-		//Cap update rate to 2 Hz
+		//Cap update rate to 10 Hz
 		//(we're mostly polling CDR lock state etc so there's no need for speed)
-		this_thread::sleep_for(chrono::milliseconds(500));
+		this_thread::sleep_for(chrono::milliseconds(100));
 	}
 }

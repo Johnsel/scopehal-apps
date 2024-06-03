@@ -43,11 +43,13 @@
 #include "MultimeterDialog.h"
 #include "PowerSupplyDialog.h"
 #include "RFGeneratorDialog.h"
-#include <fstream>
 
 #include "../scopehal/LeCroyOscilloscope.h"
 #include "../scopehal/MockOscilloscope.h"
 #include "../scopeprotocols/EyePattern.h"
+
+#include <fstream>
+#include <cinttypes>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -333,6 +335,19 @@ bool Session::LoadFromYaml(const YAML::Node& node, const string& dataDir, bool o
 	if(!LoadWaveformData(m_fileLoadVersion, dataDir))
 		return false;
 
+	//Markers
+	auto markers = node["ui_config"]["markers"];
+	if(markers)
+	{
+		for(auto it : markers)
+		{
+			auto inode = it.second;
+			TimePoint timestamp(inode["timestamp"].as<int64_t>(), inode["time_fsec"].as<int64_t>());
+			for(auto jt : inode["markers"])
+				AddMarker(Marker(timestamp, jt.second["offset"].as<int64_t>(), jt.second["name"].as<string>()));
+		}
+	}
+
 	OnMarkerChanged();
 
 	//If we have no waveform data (filter-only session) create a WaveformThread to do rendering,
@@ -540,11 +555,13 @@ bool Session::LoadWaveformDataForScope(
 		if(wfm["label"])
 			label = wfm["label"].as<string>();
 
+		LogTrace("Loading waveform data at time %s\n", time.PrettyPrint().c_str());
+
 		//If we already have historical data from this timestamp, warn and drop the duplicate data
 		auto hist = m_history.GetHistory(time);
 		if(hist && (hist->m_history.find(scope) != hist->m_history.end()))
 		{
-			LogWarning("Session contains duplicate data for time %ld.%ld, discarding\n", time.first, time.second);
+			LogWarning("Session contains duplicate data for time %" PRId64 ".%" PRId64 ", discarding\n", static_cast<int64_t>(time.first), time.second);
 			continue;
 		}
 
@@ -1220,7 +1237,7 @@ bool Session::PreLoadMisc(int version, const YAML::Node& node, bool online)
 bool Session::PreLoadBERT(int version, const YAML::Node& node, bool online)
 {
 	//Create the instrument
-	SCPIBERT* bert = nullptr;
+	shared_ptr<SCPIBERT> bert = nullptr;
 
 	auto transtype = node["transport"].as<string>();
 	auto driver = node["driver"].as<string>();
@@ -1243,11 +1260,8 @@ bool Session::PreLoadBERT(int version, const YAML::Node& node, bool online)
 			if(transport && transport->IsConnected())
 			{
 				bert = SCPIBERT::CreateBERT(driver, transport);
-				if(!VerifyInstrument(node, bert))
-				{
-					delete bert;
+				if(!VerifyInstrument(node, bert.get()))
 					bert = nullptr;
-				}
 			}
 
 			else
@@ -1284,7 +1298,7 @@ bool Session::PreLoadBERT(int version, const YAML::Node& node, bool online)
 
 	//All good. Add to our list of berts etc
 	AddBERT(bert, false);
-	m_idtable.emplace(node["id"].as<uintptr_t>(), (Instrument*)bert);
+	m_idtable.emplace(node["id"].as<uintptr_t>(), (Instrument*)bert.get());
 
 	//Run the preload
 	bert->PreLoadConfiguration(version, node, m_idtable, m_warnings);
@@ -2823,7 +2837,7 @@ void Session::RemoveFunctionGenerator(SCPIFunctionGenerator* generator)
 /**
 	@brief Adds a BERT to the session
  */
-void Session::AddBERT(SCPIBERT* bert, bool createDialog)
+void Session::AddBERT(shared_ptr<SCPIBERT> bert, bool createDialog)
 {
 	m_modifiedSinceLastSave = true;
 
@@ -2835,7 +2849,7 @@ void Session::AddBERT(SCPIBERT* bert, bool createDialog)
 	if(createDialog)
 		m_mainWindow->AddDialog(make_shared<BERTDialog>(bert, state, this));
 
-	m_mainWindow->AddToRecentInstrumentList(bert);
+	m_mainWindow->AddToRecentInstrumentList(bert.get());
 
 	StartWaveformThreadIfNeeded();
 }
@@ -2843,12 +2857,11 @@ void Session::AddBERT(SCPIBERT* bert, bool createDialog)
 /**
 	@brief Removes a BERT from the session
  */
-void Session::RemoveBERT(SCPIBERT* bert)
+void Session::RemoveBERT(shared_ptr<SCPIBERT> bert)
 {
 	m_modifiedSinceLastSave = true;
 
 	m_berts.erase(bert);
-	delete bert;
 }
 
 /**
@@ -2950,7 +2963,7 @@ set<SCPIInstrument*> Session::GetSCPIInstruments()
 		insts.emplace(it.first);
 	for(auto& it : m_berts)
 	{
-		auto b = dynamic_cast<SCPIBERT*>(it.first);
+		SCPIBERT* b = dynamic_cast<SCPIBERT*>(it.first.get());
 		if(b != nullptr)
 			insts.emplace(b);
 	}
@@ -2977,7 +2990,7 @@ set<Instrument*> Session::GetInstruments()
 	for(auto& it : m_psus)
 		insts.emplace(it.first);
 	for(auto& it : m_berts)
-		insts.emplace(it.first);
+		insts.emplace(it.first.get());
 	for(auto& it : m_meters)
 		insts.emplace(it.first);
 	for(auto& it : m_loads)

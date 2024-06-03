@@ -2,7 +2,7 @@
 *                                                                                                                      *
 * ngscopeclient                                                                                                        *
 *                                                                                                                      *
-* Copyright (c) 2012-2024 Andrew D. Zonenberg and contributors                                                         *
+* Copyright (c) 2012-2024 Andrew D. Zonenberg                                                                          *
 * All rights reserved.                                                                                                 *
 *                                                                                                                      *
 * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the     *
@@ -30,27 +30,45 @@
 /**
 	@file
 	@author Andrew D. Zonenberg
-	@brief Implementation of AboutDialog
+	@brief Implementation of DigitalOutputChannelDialog
  */
 
 #include "ngscopeclient.h"
-#include "AboutDialog.h"
 #include "MainWindow.h"
-#include <ngscopeclient-version.h>
-#include <imgui_markdown.h>
+#include "DigitalOutputChannelDialog.h"
+#include <imgui_node_editor.h>
+#include "../scopehal/BufferedSwitchMatrixOutputChannel.h"
 
 using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Construction / destruction
 
-AboutDialog::AboutDialog(MainWindow* parent)
-	: Dialog("About ngscopeclient", to_string_hex(reinterpret_cast<uintptr_t>(this)), ImVec2(600, 400))
+DigitalOutputChannelDialog::DigitalOutputChannelDialog(DigitalOutputChannel* chan, MainWindow* parent, bool graphEditorMode)
+	: EmbeddableDialog(chan->GetHwname(), string("Channel properties: ") + chan->GetHwname(), ImVec2(300, 400), graphEditorMode)
+	, m_channel(chan)
 	, m_parent(parent)
+	, m_drive("")
+	, m_committedDrive(0)
 {
+	m_committedDisplayName = m_channel->GetDisplayName();
+	m_displayName = m_committedDisplayName;
+
+	//Color
+	auto color = ColorFromString(m_channel->m_displaycolor);
+	m_color[0] = ((color >> IM_COL32_R_SHIFT) & 0xff) / 255.0f;
+	m_color[1] = ((color >> IM_COL32_G_SHIFT) & 0xff) / 255.0f;
+	m_color[2] = ((color >> IM_COL32_B_SHIFT) & 0xff) / 255.0f;
+
+	auto bso = dynamic_cast<BufferedSwitchMatrixOutputChannel*>(m_channel);
+	if(bso && bso->MuxHasConfigurableDrive())
+	{
+		m_committedDrive = bso->GetMuxOutputDrive();
+		m_drive = Unit(Unit::UNIT_VOLTS).PrettyPrint(m_committedDrive);
+	}
 }
 
-AboutDialog::~AboutDialog()
+DigitalOutputChannelDialog::~DigitalOutputChannelDialog()
 {
 }
 
@@ -63,56 +81,71 @@ AboutDialog::~AboutDialog()
 	@return		True if we should continue showing the dialog
 				False if it's been closed
  */
-bool AboutDialog::DoRender()
+bool DigitalOutputChannelDialog::DoRender()
 {
-	ImGui::MarkdownConfig mdConfig
+	//Flags for a header that should be open by default EXCEPT in the graph editor
+	ImGuiTreeNodeFlags defaultOpenFlags = m_graphEditorMode ? 0 : ImGuiTreeNodeFlags_DefaultOpen;
+
+	float width = 10 * ImGui::GetFontSize();
+
+	auto bso = dynamic_cast<BufferedSwitchMatrixOutputChannel*>(m_channel);
+	auto inst = m_channel->GetParent();
+	if(!inst)
+		return true;
+
+	if(ImGui::CollapsingHeader("Info"))
 	{
-		nullptr,	//linkCallback
-		nullptr,	//tooltipCallback
-		nullptr,	//imageCallback
-		"",			//linkIcon (not used)
-		{
-			{ m_parent->GetFontPref("Appearance.Markdown.heading_1_font"), true },
-			{ m_parent->GetFontPref("Appearance.Markdown.heading_2_font"), true },
-			{ m_parent->GetFontPref("Appearance.Markdown.heading_3_font"), false }
-		},
-		nullptr		//userData
-	};
+		auto nickname = inst->m_nickname;
+		auto index = to_string(m_channel->GetIndex() + 1);	//use one based index for display
 
-	ImGuiTabBarFlags tab_bar_flags = ImGuiTabBarFlags_None;
-	if (ImGui::BeginTabBar("MyTabBar", tab_bar_flags))
+		ImGui::BeginDisabled();
+			ImGui::SetNextItemWidth(width);
+			ImGui::InputText("Instrument", &nickname);
+		ImGui::EndDisabled();
+		HelpMarker("The instrument this channel was measured by");
+
+		ImGui::BeginDisabled();
+			ImGui::SetNextItemWidth(width);
+			ImGui::InputText("Hardware Channel", &index);
+		ImGui::EndDisabled();
+		HelpMarker("Physical channel number (starting from 1) on the instrument front panel");
+	}
+
+	//All channels have display settings
+	if(ImGui::CollapsingHeader("Display", defaultOpenFlags))
 	{
-		if(ImGui::BeginTabItem("Versions"))
+		ImGui::SetNextItemWidth(width);
+		if(TextInputWithImplicitApply("Nickname", m_displayName, m_committedDisplayName))
+			m_channel->SetDisplayName(m_committedDisplayName);
+
+		HelpMarker("Display name for the channel");
+
+		if(ImGui::ColorEdit3(
+			"Color",
+			m_color,
+			ImGuiColorEditFlags_NoAlpha | ImGuiColorEditFlags_InputRGB | ImGuiColorEditFlags_Uint8))
 		{
-			string str =
-				string("  * ngscopeclient ") + NGSCOPECLIENT_VERSION + "\n" +
-				"  * libscopehal " + ScopehalGetVersion() + "\n" +
-				"  * Dear ImGui " + IMGUI_VERSION + "\n"
-				"  * Vulkan SDK " + to_string(VK_HEADER_VERSION) + "\n"
-				;
-			ImGui::Markdown( str.c_str(), str.length(), mdConfig );
-
-			ImGui::EndTabItem();
+			char tmp[32];
+			snprintf(tmp, sizeof(tmp), "#%02x%02x%02x",
+				static_cast<int>(round(m_color[0] * 255)),
+				static_cast<int>(round(m_color[1] * 255)),
+				static_cast<int>(round(m_color[2] * 255)));
+			m_channel->m_displaycolor = tmp;
 		}
+	}
 
-		if(ImGui::BeginTabItem("Licenses"))
+	//Buffered channels have output voltage selector, if available
+	if(bso && bso->MuxHasConfigurableDrive())
+	{
+		if(ImGui::CollapsingHeader("Output buffer", defaultOpenFlags))
 		{
-			string str =
-				"This is free software: you are free to change and redistribute it.\n"
-				"There is NO WARRANTY, to the extent permitted by law.\n"
-				"\n"
-				"ngscopeclient and libscopehal are released under 3-clause BSD license.\n"
-				"TODO: add full dependency list and individual licenses here";
-			ImGui::Markdown( str.c_str(), str.length(), mdConfig );
+			ImGui::SetNextItemWidth(width);
+			if(UnitInputWithExplicitApply("Level", m_drive, m_committedDrive, Unit(Unit::UNIT_VOLTS)))
+				bso->SetMuxOutputDrive(m_committedDrive);
 
-			ImGui::EndTabItem();
+			HelpMarker("Nominal VCC level of the output driver\n");
 		}
-
-		ImGui::EndTabBar();
 	}
 
 	return true;
 }
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// UI event handlers

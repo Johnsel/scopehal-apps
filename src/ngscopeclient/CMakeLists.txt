@@ -1,6 +1,6 @@
 # At the moment, this is meant to be built as part of scopehal-apps.
 # Standalone build/install is a potential long-term goal.
-#If there is interest in a standalone build, please reach out. 
+#If there is interest in a standalone build, please reach out.
 
 # Vulkan is required for compute shaders used in rendering, but is pulled in from the top level CMakeLists.
 
@@ -63,6 +63,7 @@ add_executable(ngscopeclient
 	BERTThread.cpp
 	ChannelPropertiesDialog.cpp
 	Dialog.cpp
+	DigitalOutputChannelDialog.cpp
 	EmbeddableDialog.cpp
 	EmbeddedTriggerPropertiesDialog.cpp
 	FileBrowser.cpp
@@ -174,9 +175,12 @@ endif()
 target_include_directories(ngscopeclient
 	PRIVATE
 	${CMAKE_CURRENT_BINARY_DIR}
-	SYSTEM
+	)
+target_include_directories(ngscopeclient
+	SYSTEM PRIVATE
 	${CMAKE_CURRENT_SOURCE_DIR}/../imgui/
 	${CMAKE_CURRENT_SOURCE_DIR}/../imgui/misc/cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/../imgui_markdown
 	${CMAKE_CURRENT_SOURCE_DIR}/../implot/
 	${CMAKE_CURRENT_SOURCE_DIR}/../imgui-node-editor/
 	${CMAKE_CURRENT_SOURCE_DIR}/../ImGuiFileDialog/
@@ -190,6 +194,14 @@ target_link_libraries(ngscopeclient
 	nfd
 	PNG::PNG
 	)
+
+if(CMAKE_SIZEOF_VOID_P EQUAL 4)
+	target_compile_definitions(ngscopeclient
+		PRIVATE
+		ImTextureID=ImU64
+		VULKAN_HPP_TYPESAFE_CONVERSION=1
+	)
+endif()
 
 #Needed to run from tree without install because Windows does not support RPATH and will otherwise not be able to find DLLs
 if(WIN32)

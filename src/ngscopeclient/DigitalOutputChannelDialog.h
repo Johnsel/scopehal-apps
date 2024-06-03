@@ -1,8 +1,8 @@
 /***********************************************************************************************************************
 *                                                                                                                      *
-* glscopeclient                                                                                                        *
+* ngscopeclient                                                                                                        *
 *                                                                                                                      *
-* Copyright (c) 2012-2022 Andrew D. Zonenberg and contributors                                                         *
+* Copyright (c) 2012-2024 Andrew D. Zonenberg                                                                          *
 * All rights reserved.                                                                                                 *
 *                                                                                                                      *
 * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the     *
@@ -30,113 +30,38 @@
 /**
 	@file
 	@author Andrew D. Zonenberg
-	@brief Main code for Filters test case
+	@brief Declaration of DigitalOutputChannelDialog
  */
+#ifndef DigitalOutputChannelDialog_h
+#define DigitalOutputChannelDialog_h
 
-#define CATCH_CONFIG_RUNNER
-#ifdef _CATCH2_V3
-#include <catch2/catch_all.hpp>
-#else
-#include <catch2/catch.hpp>
-#define EventListenerBase TestEventListenerBase
-#endif
-#include "Filters.h"
+#include "EmbeddableDialog.h"
 
-using namespace std;
+class MainWindow;
 
-minstd_rand g_rng;
-MockOscilloscope* g_scope;
-
-// Global initialization
-class testRunListener : public Catch::EventListenerBase
+class DigitalOutputChannelDialog : public EmbeddableDialog
 {
 public:
-    using Catch::EventListenerBase::EventListenerBase;
+	DigitalOutputChannelDialog(DigitalOutputChannel* chan, MainWindow* parent, bool graphEditorMode = false);
+	virtual ~DigitalOutputChannelDialog();
 
-    void testRunStarting(Catch::TestRunInfo const&) override
-    {
-		g_log_sinks.emplace(g_log_sinks.begin(), new ColoredSTDLogSink(Severity::VERBOSE));
+	virtual bool DoRender() override;
 
-		if(!VulkanInit(true))
-			exit(1);
-		TransportStaticInit();
-		DriverStaticInit();
-		InitializePlugins();
-		ScopeProtocolStaticInit();
+	DigitalOutputChannel* GetChannel()
+	{ return m_channel; }
 
-		//Add search path
-		g_searchPaths.push_back(GetDirOfCurrentExecutable() + "/../../src/ngscopeclient/");
+protected:
 
-		//Initialize the RNG
-		g_rng.seed(0);
+	DigitalOutputChannel* m_channel;
+	MainWindow* m_parent;
 
-		//Create some fake scope channels
-		g_scope = new MockOscilloscope("Test Scope", "Antikernel Labs", "12345", "null", "mock", "");
-		g_scope->AddChannel(new OscilloscopeChannel(
-			g_scope, "CH1", "#ffffffff", Unit(Unit::UNIT_FS), Unit(Unit::UNIT_VOLTS)));
-		g_scope->AddChannel(new OscilloscopeChannel(
-			g_scope, "CH2", "#ffffffff", Unit(Unit::UNIT_FS), Unit(Unit::UNIT_VOLTS)));
+	std::string m_drive;
+	float m_committedDrive;
 
-		g_scope->AddChannel(new OscilloscopeChannel(
-			g_scope, "Mag", "#ffffffff", Unit(Unit::UNIT_HZ), Unit(Unit::UNIT_DB)));
-		g_scope->AddChannel(new OscilloscopeChannel(
-			g_scope, "Angle", "#ffffffff", Unit(Unit::UNIT_HZ), Unit(Unit::UNIT_DEGREES)));
+	std::string m_displayName;
+	std::string m_committedDisplayName;
 
-	}
-
-	//Clean up after the scope goes out of scope (pun not intended)
-	void testRunEnded([[maybe_unused]] Catch::TestRunStats const& testRunStats) override
-	{
-		delete g_scope;
-		ScopehalStaticCleanup();
-	}
+	float m_color[3];
 };
-CATCH_REGISTER_LISTENER(testRunListener)
 
-int main(int argc, char* argv[])
-{
-	return Catch::Session().run(argc, argv);
-}
-
-/**
-	@brief Fills a waveform with random content, uniformly distributed from fmin to fmax
- */
-void FillRandomWaveform(UniformAnalogWaveform* wfm, size_t size, float fmin, float fmax)
-{
-	auto rdist = uniform_real_distribution<float>(fmin, fmax);
-
-	wfm->PrepareForCpuAccess();
-	wfm->Resize(size);
-
-	for(size_t i=0; i<size; i++)
-		wfm->m_samples[i] = rdist(g_rng);
-
-	wfm->MarkModifiedFromCpu();
-
-	wfm->m_revision ++;
-	if(wfm->m_timescale == 0)
-		wfm->m_timescale = 1000;
-}
-
-void VerifyMatchingResult(AcceleratorBuffer<float>& golden, AcceleratorBuffer<float>& observed, float tolerance)
-{
-	REQUIRE(golden.size() == observed.size());
-
-	golden.PrepareForCpuAccess();
-	observed.PrepareForCpuAccess();
-	size_t len = golden.size();
-
-	bool firstFail = true;
-	for(size_t i=0; i<len; i++)
-	{
-		float delta = fabs(golden[i] - observed[i]);
-
-		if( (delta >= tolerance) && firstFail)
-		{
-			LogError("first fail at i=%zu (delta=%f, tolerance=%f)\n", i, delta, tolerance);
-			firstFail = false;
-		}
-
-		REQUIRE(delta < tolerance);
-	}
-}
+#endif

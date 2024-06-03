@@ -77,19 +77,19 @@
 #include "TimebasePropertiesDialog.h"
 #include "TriggerPropertiesDialog.h"
 
-#include "../imgui_markdown/imgui_markdown.h"
+#include <imgui_markdown.h>
 
 #ifdef _WIN32
 #include <windows.h>
 #include <shlwapi.h>
-#include <sys/stat.h>
 #else
-#include <sys/stat.h>
 #include <sys/types.h>
 #include <fcntl.h>
 #include <sys/mman.h>
 #endif
 
+#include <sys/stat.h>
+#include <cinttypes>
 
 using namespace std;
 
@@ -139,14 +139,14 @@ MainWindow::MainWindow(shared_ptr<QueueHandle> queue)
 
 	vk::CommandBufferAllocateInfo bufinfo(**m_cmdPool, vk::CommandBufferLevel::ePrimary, 1);
 	m_cmdBuffer = make_unique<vk::raii::CommandBuffer>(
-		move(vk::raii::CommandBuffers(*g_vkComputeDevice, bufinfo).front()));
+		std::move(vk::raii::CommandBuffers(*g_vkComputeDevice, bufinfo).front()));
 
 	if(g_hasDebugUtils)
 	{
 		g_vkComputeDevice->setDebugUtilsObjectNameEXT(
 			vk::DebugUtilsObjectNameInfoEXT(
 				vk::ObjectType::eCommandPool,
-				reinterpret_cast<int64_t>(static_cast<VkCommandPool>(**m_cmdPool)),
+				reinterpret_cast<uint64_t>(static_cast<VkCommandPool>(**m_cmdPool)),
 				"MainWindow.m_cmdPool"));
 
 		g_vkComputeDevice->setDebugUtilsObjectNameEXT(
@@ -168,6 +168,13 @@ MainWindow::MainWindow(shared_ptr<QueueHandle> queue)
 
 	//Don't move windows when dragging in the body, only the title bar
 	ImGui::GetIO().ConfigWindowsMoveFromTitleBarOnly = true;
+
+	//Update preference settings for viewport mode
+	auto viewportMode = m_session.GetPreferences().GetEnumRaw("Appearance.Windowing.viewport_mode");
+	if(viewportMode == VIEWPORT_ENABLE)
+		ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+	else
+		ImGui::GetIO().ConfigFlags &= ~ImGuiConfigFlags_ViewportsEnable;
 }
 
 MainWindow::~MainWindow()
@@ -733,7 +740,9 @@ void MainWindow::LoadGradients()
 	LoadGradient("Ironbow", "eye-gradient-ironbow");
 	LoadGradient("KRain", "eye-gradient-krain");
 	LoadGradient("Rainbow", "eye-gradient-rainbow");
+	LoadGradient("Reverse Grayscale", "eye-gradient-reverse-grayscale");
 	LoadGradient("Reverse Rainbow", "eye-gradient-reverse-rainbow");
+	LoadGradient("Reverse Viridis", "eye-gradient-reverse-viridis");
 	LoadGradient("Viridis", "eye-gradient-viridis");
 }
 
@@ -1322,7 +1331,7 @@ void MainWindow::LoadRecentInstrumentList()
 		for(auto it : node)
 		{
 			auto inst = it.second;
-			m_recentInstruments[inst["path"].as<string>()] = inst["timestamp"].as<long long>();
+			m_recentInstruments[inst["path"].as<string>()] = inst["timestamp"].as<int64_t>();
 		}
 	}
 	catch(const YAML::BadFile& ex)
@@ -1345,7 +1354,7 @@ void MainWindow::SaveRecentInstrumentList()
 		auto nick = it.first.substr(0, it.first.find(":"));
 		fprintf(fp, "%s:\n", nick.c_str());
 		fprintf(fp, "    path: \"%s\"\n", it.first.c_str());
-		fprintf(fp, "    timestamp: %ld\n", it.second);
+		fprintf(fp, "    timestamp: %" PRId64 "\n", static_cast<int64_t>(it.second));
 	}
 
 	fclose(fp);
@@ -1644,16 +1653,17 @@ void MainWindow::RemoveFunctionGenerator(SCPIFunctionGenerator* gen)
 void MainWindow::UpdateFonts()
 {
 	//Check for any changes to font preferences and rebuild the atlas if so
-	//Early out if nothing changed
+	//Skip rebuilding atlas if nothing changed
 	auto& prefs = GetSession().GetPreferences();
-	if(!m_fontmgr.UpdateFonts(prefs.AllPreferences(), GetContentScale()))
-		return;
+	if(m_fontmgr.UpdateFonts(prefs.AllPreferences(), GetContentScale()))
+	{
+		//Download imgui fonts
+		ImGui_ImplVulkan_CreateFontsTexture();
+	}
 
-	//Set the default font
+	//Set the default font. Needs to be done regardless of atlas rebuild as it may already be loaded
+	//e.g. in case the user is already using it for another pref
 	ImGui::GetIO().FontDefault = m_fontmgr.GetFont(prefs.GetFont("Appearance.General.default_font"));
-
-	//Download imgui fonts
-	ImGui_ImplVulkan_CreateFontsTexture();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -2339,19 +2349,6 @@ bool MainWindow::LoadUIConfiguration(int version, const YAML::Node& node)
 		}
 	}
 
-	//Markers
-	auto markers = node["markers"];
-	if(markers)
-	{
-		for(auto it : markers)
-		{
-			auto inode = it.second;
-			TimePoint timestamp(inode["timestamp"].as<int64_t>(), inode["time_fsec"].as<int64_t>());
-			for(auto jt : inode["markers"])
-				m_session.AddMarker(Marker(timestamp, jt.second["offset"].as<int64_t>(), jt.second["name"].as<string>()));
-		}
-	}
-
 	//ignore splitter configuration from legacy format as imgui now handles that
 
 	auto dialogs = node["dialogs"];
@@ -2488,7 +2485,10 @@ bool MainWindow::LoadDialogs(const YAML::Node& node)
 				static_cast<Instrument*>(m_session.m_idtable[it.second.as<int>()]));
 
 			if(bert)
-				AddDialog(make_shared<BERTDialog>(bert, m_session.GetBERTState(bert), &m_session));
+			{
+				auto sbert = bert->shared_from_this();
+				AddDialog(make_shared<BERTDialog>(sbert, m_session.GetBERTState(sbert), &m_session));
+			}
 			else
 			{
 				ShowErrorPopup("Invalid BERT", "BERT dialog references nonexistent instrument");
@@ -3007,7 +3007,7 @@ YAML::Node MainWindow::SerializeDialogs()
 		for(auto it : m_bertDialogs)
 		{
 			auto bert = it.first;
-			gnode[bert->m_nickname] = m_session.m_idtable.emplace((Instrument*)bert);
+			gnode[bert->m_nickname] = m_session.m_idtable.emplace((Instrument*)bert.get());
 		}
 		node["berts"] = gnode;
 	}

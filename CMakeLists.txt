@@ -1,14 +1,19 @@
 cmake_minimum_required(VERSION 3.20)
 include_directories(cmake) #WORKAROUND needed for find_package(Vulkan) for Vulkan SDK
+enable_language(CXX)
 
-#WORKAROUND: Vulkan SDK is incompatible with MinGW due to C++ linkage
-
+# Warn if platform is not 64-bit
+if(NOT (CMAKE_SIZEOF_VOID_P EQUAL 8))
+	message(WARNING "You are attempting to build on a 32-bit platform. While this may work and we may accept fixes "
+		              "upstream, it will most likely fail and is unsupported.")
+endif()
 
 # Check for Vulkan SDK env var and prepend it to CMAKE_PREFIX_PATH if set to prefer Vulkan SDK packages if available
 if(DEFINED ENV{VULKAN_SDK})
-	if(WIN32 AND (NOT MSVC))
+	#WORKAROUND: Vulkan SDK is incompatible with MinGW due to C++ linkage
+	if(WIN32 AND (NOT CMAKE_GENERATOR MATCHES "Visual Studio"))
 		message(WARNING "Detected VULKAN_SDK at $ENV{VULKAN_SDK}.")
-		message(WARNING "Compiling and linking against the Vulkan SDK is not supported with MSYS. The build system"
+		message(WARNING "Compiling and linking against the Vulkan SDK is not supported with MSYS. The build system "
 			      "will ignore the SDK and you will need to have the Vulkan packages installed from the MSYS repositories.")
 	else()
 		message("Detected and using VULKAN_SDK at $ENV{VULKAN_SDK}")
@@ -35,30 +40,30 @@ if(DISABLE_PCH)
 	set(CMAKE_DISABLE_PRECOMPILE_HEADERS ON)
 endif()
 
-# Compiler flags
-add_compile_options(-Wall -Wextra -Wuninitialized)
-add_compile_options(-Wshadow -Wpedantic -Wcast-align -Wwrite-strings)
-add_compile_options(-Wmissing-declarations -Wvla)
-add_compile_options(-Werror -Wno-error=maybe-uninitialized)
-add_compile_options(-Wno-error=deprecated-declarations -Wno-error=unused-parameter -Wno-error=unused-variable -Wno-error=unused-result -Wno-error=restrict -Wno-error=unused-function -Wno-error=missing-field-initializers -Wno-error=shadow -Wno-error=missing-declarations) # some of these are for libtslitex
+# Compiler warnings for GCC/Clang
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+	add_compile_options(-Wall -Wextra -Wuninitialized)
+	add_compile_options(-Wshadow -Wpedantic -Wcast-align -Wwrite-strings)
+	add_compile_options(-Wmissing-declarations -Wvla)
+  	#add_compile_options(-Werror -Wno-error=deprecated-declarations -Wno-error=unused-parameter -Wno-error=unused-variable -Wno-error=unused-result)
+	add_compile_options(-Wno-error=deprecated-declarations -Wno-error=unused-parameter -Wno-error=unused-variable -Wno-error=unused-result -Wno-error=restrict -Wno-error=unused-function -Wno-error=missing-field-initializers -Wno-error=shadow -Wno-error=missing-declarations) # some of these are for libtslitex
 
-# Compiler warnings
-add_compile_options($<$<AND:$<COMPILE_LANG_AND_ID:CXX,GNU>,$<VERSION_GREATER_EQUAL:$<CXX_COMPILER_VERSION>,13>>:-Woverloaded-virtual=1>)
+endif()
 
-add_compile_options($<$<AND:$<COMPILE_LANG_AND_ID:C,GNU>,$<VERSION_GREATER_EQUAL:$<C_COMPILER_VERSION>,13>>:-Wno-error=sign-compare>)
-
-add_compile_options($<$<COMPILE_LANG_AND_ID:CXX,Clang,AppleClang>:-Woverloaded-virtual$<SEMICOLON>-Wpointer-sign$<SEMICOLON>-Wno-gnu-zero-variadic-macro-arguments$<SEMICOLON>-Wno-unknown-warning-option>)
-
-#if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 13)
-#      add_compile_options(-Woverloaded-virtual=1)
-#elseif (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-#  add_compile_options(-Woverloaded-virtual -Wpointer-sign -Wno-gnu-zero-variadic-macro-arguments -Wno-unknown-warning-option)
-#endif()
-
-
+# Compiler warnings specific to GCC or Clang
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 13)
+	add_compile_options(-Woverloaded-virtual=1)
+elseif (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  add_compile_options(-Woverloaded-virtual -Wpointer-sign -Wno-gnu-zero-variadic-macro-arguments -Wno-unknown-warning-option)
+endif()
 add_compile_options(-g -mtune=native)
 add_compile_options("$<$<CONFIG:RELEASE>:-O3>")
 add_compile_options("$<$<CONFIG:DEBUG>:-O0;-D_DEBUG>")
+
+# Needed for %zu/%zd on MSYS2, must be added here to avoid redefinition
+if(WIN32 AND (NOT MSVC))
+    add_compile_definitions(__USE_MINGW_ANSI_STDIO=1)
+endif()
 
 # Default build type
 if(NOT CMAKE_BUILD_TYPE)
